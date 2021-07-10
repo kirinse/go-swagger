@@ -63,3 +63,4 @@ enter-deploy-env.sh
 coverage.txt
 
 hack/deploy.env
+/antd/markdown.md

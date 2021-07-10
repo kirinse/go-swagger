@@ -60,6 +60,7 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 	return template.FuncMap(map[string]interface{}{
 		"pascalize": pascalize,
 		"camelize":  swag.ToJSONName,
+		"Camelize": swag.Camelize,
 		"varname":   lang.MangleVarName,
 		"humanize":  swag.ToHumanNameLower,
 		"snakize":   lang.MangleFileName,
@@ -97,6 +98,7 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 		"mediaTypeName":    mediaMime,
 		"arrayInitializer": lang.arrayInitializer,
 		"hasPrefix":        strings.HasPrefix,
+		"trimPrefix":       strings.TrimPrefix,
 		"stringContains":   strings.Contains,
 		"imports":          lang.imports,
 		"dict":             dict,
@@ -208,6 +210,11 @@ func defaultAssets() map[string][]byte {
 		"cli/retrieveflag.gotmpl": MustAsset("templates/cli/retrieveflag.gotmpl"),
 		"cli/schema.gotmpl":       MustAsset("templates/cli/schema.gotmpl"),
 		"cli/completion.gotmpl":   MustAsset("templates/cli/completion.gotmpl"),
+
+		// antd templates
+		"antd/data.gotmpl":          MustAsset("templates/antd/data.gotmpl"),
+		"antd/listComponent.gotmpl": MustAsset("templates/antd/listComponent.gotmpl"),
+		"antd/service.gotmpl":       MustAsset("templates/antd/service.gotmpl"),
 	}
 }
 

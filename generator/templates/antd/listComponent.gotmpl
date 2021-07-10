@@ -1,0 +1,230 @@
+import { message, Popconfirm, Tag } from 'antd';
+import React, { useRef } from 'react';
+import { FormattedMessage } from 'umi';
+import type { ActionType } from '@ant-design/pro-table';
+import type { ProColumns } from '@ant-design/pro-table';
+import { amountRangeFilter, dateTimeRangeFilter, isPostFailed } from '@/helper';
+import {
+buildTaskTypeFilters,
+buildTaskTypeValueEnum,
+renderI18n,
+renderTaskType,
+} from '@/pages/system/task/_helper';
+import moment from 'moment';
+
+import { deleteTask, listTasks, restoreTask } from '@/pages/system/task/service';
+import type { ListTasksRequest, Task } from '@/pages/system/task/data';
+import { useIntl } from 'umi';
+import {
+buildFrequencyFilters,
+buildFrequencyValueEnum,
+renderFrequency,
+} from '@/pages/system/rank/_helper';
+import ListTable from '@/pages/transaction/_component/listTable';
+
+type TasksTableProps = {
+params?: Record<any, any>;
+};
+
+const TasksTable: React.FC<TasksTableProps> = (props) => {
+  const actionRef = useRef<ActionType>();
+    const intl = useIntl();
+    const listTasksRequest = async (params: { current?: number } & ListTasksRequest) => {
+    const res = await listTasks(params);
+    if (res === null) {
+    return {
+    data: [],
+    success: false,
+    total: 0,
+    };
+    }
+    return {
+    data: res.records,
+    success: true,
+    total: res.totalRecord,
+    };
+    };
+    const { params } = props;
+    const delTask = async (ids: number[]) => {
+    const result = await deleteTask(ids);
+    if (!isPostFailed(result)) {
+    message.success(intl.formatMessage({ id: `common.delete.success` }));
+    actionRef.current?.reload();
+    }
+    };
+    const restTask = async (ids: number[]) => {
+    const result = await restoreTask(ids);
+    if (!isPostFailed(result)) {
+    message.success(intl.formatMessage({ id: `common.restore.success` }));
+    actionRef.current?.reload();
+    }
+    };
+
+    const TaskColumns: ProColumns<Task>[] = [
+      {
+      title: 'ID',
+      dataIndex: 'id',
+      search: false,
+      responsive: ['lg'],
+      },
+      {
+      title: <FormattedMessage id="pages.system.task.name" defaultMessage="名称" />,
+      dataIndex: 'name',
+      key: 'name',
+      search: false,
+      renderText: (___, entity) => (entity.name ? renderI18n(entity.name) : ___),
+      },
+      {
+      title: <FormattedMessage id="description" defaultMessage="描述" />,
+      dataIndex: 'description',
+      key: 'description',
+      search: false,
+      responsive: ['lg'],
+      renderText: (___, entity) => (entity.description ? renderI18n(entity.description) : ___),
+      },
+      {
+      title: <FormattedMessage id="pages.card.type" defaultMessage="类型" />,
+      dataIndex: 'type',
+      align: 'center',
+      renderText: (__, entity) => renderTaskType(entity.type),
+      filters: buildTaskTypeFilters(),
+      valueEnum: buildTaskTypeValueEnum(),
+      fieldProps: {
+      mode: 'multiple',
+      },
+      },
+      {
+      title: '内容',
+      key:'content',
+      hideInSearch: true,
+      children: [
+      {
+      title: <FormattedMessage id="pages.system.task.Frequency" defaultMessage="时限" />,
+      dataIndex: 'duration',
+      key: 'duration',
+      align: 'center',
+      renderText: (__, entity) => renderFrequency(entity.duration!),
+      filters: buildFrequencyFilters(),
+      valueEnum: buildFrequencyValueEnum(),
+      fieldProps: {
+      mode: 'multiple',
+      },
+      },
+      {
+      title: <FormattedMessage id="pages.system.task.maxTimes" defaultMessage="最大次数" />,
+      dataIndex: 'maxTimes',
+      key: 'maxTimes',
+      align: 'center',
+      responsive: ['lg'],
+      },
+      {
+      title: <FormattedMessage id="pages.system.task.service" defaultMessage="业务" />,
+      dataIndex: 'service',
+      key: 'service',
+      align: 'center',
+      renderText: (text) => (
+      <Tag>
+        <FormattedMessage id={`pages.system.task.service.${text}`} defaultMessage={text} />
+      </Tag>
+      ),
+      responsive: ['lg'],
+      },
+      ],
+      },
+      {
+      title: <FormattedMessage id="pages.system.task.bonus" defaultMessage="奖励" />,
+      hideInSearch: true,
+      key: 'bonus',
+      children: [
+      {
+      title: <FormattedMessage id="pages.system.task.bonusEnergy" defaultMessage="能量" />,
+      dataIndex: 'bonusEnergy',
+      key: 'bonusEnergy',
+      align: 'center',
+      filterDropdown: amountRangeFilter(intl),
+      },
+      {
+      title: <FormattedMessage id="pages.system.task.bonusMoney" defaultMessage="现金" />,
+      dataIndex: 'bonusMoney',
+      key: 'bonusMoney',
+      align: 'center',
+      },
+      ],
+      },
+      {
+      title: <FormattedMessage id="pages.card.createdAt" defaultMessage="添加时间" />,
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      valueType: 'dateTime',
+      responsive: ['lg'],
+      search: false,
+      sorter: (a, b) => {
+      return moment(a.createdAt).unix() - moment(b.createdAt).unix();
+      },
+      filterDropdown: dateTimeRangeFilter,
+      },
+      {
+      title: <FormattedMessage id="pages.card.createdAt" defaultMessage="添加时间" />,
+      dataIndex: 'createdAt',
+      valueType: 'dateTimeRange',
+      hideInTable: true,
+      search: {
+      transform: (value) => {
+      return value
+      ? {
+      createdAtMin: moment(value[0]).format(),
+      createdAtMax: moment(value[1]).format(),
+      }
+      : {};
+      },
+      },
+      },
+      {
+      title: <FormattedMessage id="pages.searchTable.titleOption" defaultMessage="操作" />,
+      valueType: 'option',
+      render: (___, record) => [
+      !record.deletedAt ? (
+        <Popconfirm
+          key="delete"
+          title={<FormattedMessage id="common.delete.confirmation" defaultMessage="确认删除?" />}
+          onConfirm={() => delTask([record.id])}
+          okText={<FormattedMessage id="common.delete" defaultMessage="删除" />}
+        >
+          <a>
+            <FormattedMessage id="common.delete" defaultMessage="删除" />
+          </a>
+        </Popconfirm>
+      ) : (
+        <Popconfirm
+                key="delete"
+                title={<FormattedMessage id="common.restore.confirmation" defaultMessage="确认恢复?" />}
+        onConfirm={() => restTask([record.id])}
+        okText={<FormattedMessage id="common.restore" defaultMessage="恢复" />}
+        >
+        <a>
+          <FormattedMessage id="common.restore" defaultMessage="恢复" />
+        </a>
+        </Popconfirm>
+      ),
+    ],
+  },
+];
+
+      const columnsStateMap = {
+      description: {
+      show: false,
+      },
+      };
+
+      return (
+        <ListTable
+          rowKey={`id`}
+          columns={TaskColumns}
+          request={listTasksRequest}
+          actionRef={actionRef}
+          params={params}
+          columnsStateMap={columnsStateMap}
+        />
+      );
+    };
+export default TasksTable;

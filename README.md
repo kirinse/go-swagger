@@ -284,3 +284,5 @@ github.com/go-swagger/go-swagger to github.com/go-openapi
 ### Using 0.5.0
 
 Because 0.5.0 and master have diverged significantly, you should checkout the tag 0.5.0 for go-swagger when you use the currently released version.
+
+### cd generator && go-bindata -pkg generator templates/...

@@ -1,0 +1,19 @@
+import request from '@/utils/request';
+import type { Task, ListTasksReply, ListTasksRequest } from './data';
+
+{{ $title := .Info.Title }}
+
+{{- range .Operations }}
+  {{- if stringContains .Path "admin" }}
+export async function {{ camelize (trimPrefix (humanize .Name) .PackageAlias) }}(params?: {{- range .Params }}
+      {{- if .IsBodyParam }}
+        {{- trimPrefix (dropPackage .GoType) (Camelize $title) }}
+      {{- end }}
+    {{- end }}) {
+    return request(`{{ .Path }}`, {
+      params,
+      method: '{{ .Method }}',
+    });
+}
+  {{- end }}
+{{- end }}

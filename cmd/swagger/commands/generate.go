@@ -26,4 +26,5 @@ type Generate struct {
 	Client    *generate.Client    `command:"client"`
 	Cli       *generate.Cli       `command:"cli"`
 	Markdown  *generate.Markdown  `command:"markdown"`
+	AntD      *generate.Antd      `command:"antd"`
 }
