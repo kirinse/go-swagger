@@ -58,12 +58,14 @@ func initTemplateRepo() {
 // These are available in every template
 func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 	return template.FuncMap(map[string]interface{}{
-		"pascalize": pascalize,
-		"camelize":  swag.ToJSONName,
-		"Camelize": swag.Camelize,
-		"varname":   lang.MangleVarName,
-		"humanize":  swag.ToHumanNameLower,
-		"snakize":   lang.MangleFileName,
+		"pascalize":     pascalize,
+		"camelize":      swag.ToJSONName,
+		"Camelize":      swag.Camelize,
+		"varname":       lang.MangleVarName,
+		"humanize":      swag.ToHumanNameLower,
+		"humanizeTitle": swag.ToHumanNameTitle,
+		"replaceAll":    strings.ReplaceAll,
+		"snakize":       lang.MangleFileName,
 		"toPackagePath": func(name string) string {
 			return filepath.FromSlash(lang.ManglePackagePath(name, ""))
 		},
@@ -140,7 +142,51 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 		"httpStatus":          httpStatus,
 		"cleanupEnumVariant":  cleanupEnumVariant,
 		"gt0":                 gt0,
+		"schemaTsType":        schemaTsType,
+		"tsParam": func(pathParams interface{}, title string) string {
+			params, ok := pathParams.(GenParameters)
+			if !ok {
+				return ""
+			}
+			var types []string
+			for _, param := range params {
+				requiredMark := "?"
+				if param.Required {
+					requiredMark = ""
+				}
+				types = append(types, swag.ToJSONName(param.Name)+requiredMark+": "+schemaTsType(param.GoType, title))
+			}
+			return strings.Join(types, ", ")
+		},
 	})
+}
+
+func schemaTsType(goType, title string) string {
+	//fmt.Printf("----- goType=%s, title=%s\n", goType, title)
+	switch {
+	case goType == "string", goType == "strfmt.Base64":
+		return "string"
+	case strings.HasPrefix(goType, "models."):
+		return strings.TrimPrefix(strings.TrimPrefix(goType, "models."), title)
+	case strings.HasPrefix(goType, "[]*"):
+		return strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(goType, "[]*"), "models."), title) + "[]"
+	case goType == "map[string]string":
+		return "Record<string, string>"
+	case strings.HasPrefix(goType, "map[string]"):
+		return "Record<string," + strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(goType, "map[string]"), "models."), title) + ">"
+	case goType == "strfmt.DateTime":
+		return "Date"
+	case goType == "bool":
+		return "boolean"
+	case goType == "int64", goType == "int32":
+		return "number"
+	case goType == "[]int64", goType == "[]int32":
+		return "number[]"
+	case strings.HasPrefix(goType, "[]"):
+		return strings.TrimPrefix(strings.TrimPrefix(goType, "[]"), title) + "[]"
+	default:
+		return goType
+	}
 }
 
 func defaultAssets() map[string][]byte {

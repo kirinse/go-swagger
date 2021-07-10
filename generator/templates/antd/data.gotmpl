@@ -1,3 +1,5 @@
+{{ $title := .Info.Title }}
+
 {{- define "docParam" }}{{/* renders a parameter with simple schema */}}
 | {{ .Name }} | `{{ .Location }}` | {{ paramDocType . }} | `{{ .GoType }}` | {{ if .CollectionFormat }}`{{ docCollectionFormat .CollectionFormat .Child }}`{{ end }} | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }} | {{ trimSpace .Description }} |
 {{- end }}{{/*---- renders a parameter with simple schema ----*/}}
@@ -27,6 +29,7 @@
       {{- else if .ElemType.IsInterface -}}
         map of any{{ printf " " -}}
       {{- else -}}
+        // Record<string, string>
         map of [{{- dropPackage .ElemType.GoType }}](#{{ dasherize (dropPackage .ElemType.GoType) -}})
       {{- end -}}
     {{- else -}}
@@ -102,12 +105,12 @@
     {{- end }}
   {{- end }}
   {{- if .Properties }}
-    **{{ if .IsTuple }}Tuple members{{ else }}Properties{{ end }}**
-
+{{/*    **{{ if .IsTuple }}Tuple members{{ else }}Properties{{ end }}***/}}
+    **Properties**
     | Name | Type | Go type | Required | Default | Description | Example |
     |------|------|---------|:--------:| ------- |-------------|---------|
     {{- range .Properties }}
-      | {{ .Name }} | {{ template "docSchemaSimple" . }}| `{{ .GoType }}` | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ trimSpace .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
+      | {{ camelize .Name }} | {{ template "docSchemaSimple" . }}| `{{ .GoType }}` | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ trimSpace .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
     {{- end }}
     {{ printf "\n" }}
   {{- end }}
@@ -150,23 +153,21 @@
 {{- end -}}
 {{- end }}{{/*---- renders a schema ----*/}}
 
-{{ $title := .Info.Title }}
-
-{{/*---- 循环所有模型 ----*/}}
+{{/*---- 遍历所有模型 ----*/}}
 {{- range .Models }}
-  ### {{ trimPrefix .Name $title }}
   {{- if .Enum }}
-    ~~~ {{ .Enum }} ~~~
-  {{- end }}
-  {{ template "docModel" . }}
-  {{- if .ExtraSchemas }}
-    #### Inlined models
-    {{- range .ExtraSchemas }}
-      {{- if ne .Name "" }}
-        **{{ .Name }}**
-        {{ template "docModel" . }}
-      {{- end }}
+    export enum {{ replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }} {
+    {{- range .Enum }}
+      {{ . }} = <any> '{{ . }}',
     {{- end }}
+    }
+  {{- else if .Properties }}
+    export interface {{ replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }} {
+      {{- range .Properties }}
+        {{ $goType := trimPrefix .GoType (Camelize $title) }}
+        {{ camelize .Name }}{{ if not .Required }}?{{ end }}: {{ schemaTsType $goType (Camelize $title) }};
+      {{- end }}
+    }
   {{- end }}
 {{- end }}
-{{/*---- 循环所有模型 ----*/}}
+{{/*---- 遍历所有模型 ----*/}}
