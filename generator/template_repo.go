@@ -100,7 +100,9 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 		"mediaTypeName":    mediaMime,
 		"arrayInitializer": lang.arrayInitializer,
 		"hasPrefix":        strings.HasPrefix,
+		"hasSuffix":        strings.HasSuffix,
 		"trimPrefix":       strings.TrimPrefix,
+		"trimSuffix":       strings.TrimSuffix,
 		"stringContains":   strings.Contains,
 		"imports":          lang.imports,
 		"dict":             dict,
@@ -154,9 +156,9 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 				if param.Required {
 					requiredMark = ""
 				}
-				types = append(types, swag.ToJSONName(param.Name)+requiredMark+": "+schemaTsType(param.GoType, title))
+				types = append(types, "  " + swag.ToJSONName(param.Name)+requiredMark+": "+schemaTsType(param.GoType, title))
 			}
-			return strings.Join(types, ", ")
+			return strings.Join(types, ", \n")
 		},
 	})
 }
@@ -259,7 +261,8 @@ func defaultAssets() map[string][]byte {
 
 		// antd templates
 		"antd/data.gotmpl":          MustAsset("templates/antd/data.gotmpl"),
-		"antd/listComponent.gotmpl": MustAsset("templates/antd/listComponent.gotmpl"),
+		"antd/columns.gotmpl":          MustAsset("templates/antd/columns.gotmpl"),
+		"antd/list.gotmpl": MustAsset("templates/antd/list.gotmpl"),
 		"antd/service.gotmpl":       MustAsset("templates/antd/service.gotmpl"),
 	}
 }

@@ -68,25 +68,6 @@ func GenerateMarkdown(output string, modelNames, operationIDs []string, opts *Ge
 	return generator.GenerateMarkdown()
 }
 
-// GenerateAntd documentation for a swagger specification
-func GenerateAntd(output string, modelNames, operationIDs []string, opts *GenOpts) error {
-	if output == "." || output == "" {
-		output = "markdown.md"
-	}
-	output = filepath.Join(opts.Target, output)
-	if err := opts.EnsureDefaults(); err != nil {
-		return err
-	}
-	AntdSectionOpts(opts, output)
-
-	generator, err := newAppGenerator("", modelNames, operationIDs, opts)
-	if err != nil {
-		return err
-	}
-
-	return generator.GenerateAntd()
-}
-
 func newAppGenerator(name string, modelNames, operationIDs []string, opts *GenOpts) (*appGenerator, error) {
 	if err := opts.CheckOpts(); err != nil {
 		return nil, err
@@ -246,15 +227,6 @@ func (a *appGenerator) GenerateSupport(ap *GenApp) error {
 }
 
 func (a *appGenerator) GenerateMarkdown() error {
-	app, err := a.makeCodegenApp()
-	if err != nil {
-		return err
-	}
-
-	return a.GenOpts.renderApplication(&app)
-}
-
-func (a *appGenerator) GenerateAntd() error {
 	app, err := a.makeCodegenApp()
 	if err != nil {
 		return err

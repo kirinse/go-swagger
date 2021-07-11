@@ -8,7 +8,7 @@ import type {
 } from './data';
 
 {{- range .Operations }}
-  {{- if stringContains .Path "admin" }}
+  {{- if ne .Path "" }}
     {{ $path := .Path }}
     {{ $pathParam := false }}
     {{ $queryParam := false }}
@@ -26,7 +26,7 @@ import type {
 
     {{- if .QueryParams }}
       {{ $queryParam = true }}
-      {{ $params = print "params: {" (tsParam .QueryParams $title) "}" }}
+      {{ $params = print "params: {\n" (tsParam .QueryParams $title) "}" }}
     {{- end }}
 
     {{- if .FormParams}}
@@ -37,7 +37,6 @@ import type {
     {{- range .Params }}
       {{- if .IsBodyParam }}
         {{ $data = true }}
-{{/*        // .BodyParam {{ schemaTsType .Schema.GoType (Camelize $title) }}*/}}
         {{- if $data }}
           {{- if ne $params "" }}
             {{- $params = print $params ", "}}
@@ -48,19 +47,19 @@ import type {
     {{- end }}
     {{/* BodyParam */}}
 
-  export async function {{ camelize (trimPrefix (humanize .Name) .PackageAlias) }}({{- if $params }}{{ $params }}{{- end }}) {
-    return request.{{ lower .Method }}(`{{ $path }}`{{- if or $queryParam $data }}, { {{- if $queryParam }}params: params,{{- end }}{{- if $data }}data: data{{- end }} }{{- end }});
-  }
+export async function {{ camelize (trimPrefix (humanize .Name) .PackageAlias) }}({{- if $params }}{{ $params }}{{- end }}) {
+  return request.{{ lower .Method }}(`{{ $path }}`{{- if or $queryParam $data }}, {
+  {{- if $queryParam }}params: params,{{- end }}{{- if $data }}data: data{{- end }}{{ print "}"}}{{- end }});
+}
   {{- end }}
   {{- if .ExtraSchemas }}
     {{- range .ExtraSchemas }}
       {{- if and (ne .Name "") .Properties }}
-        export interface {{ replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }} {
-        {{- range .Properties }}
-          {{ $goType := trimPrefix .GoType (Camelize $title) }}
-          {{ camelize .Name }}{{ if not .Required }}?{{ end }}: {{ schemaTsType $goType (Camelize $title) }};
-        {{- end }}
-        }
+export interface {{ replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }} {
+{{- range .Properties }}{{ $goType := trimPrefix .GoType (Camelize $title) }}
+  {{ camelize .Name }}{{ if not .Required }}?{{ end }}: {{ schemaTsType $goType (Camelize $title) }};
+{{- end }}
+}
       {{- end }}
     {{- end }}
   {{- end }}

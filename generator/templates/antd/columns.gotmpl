@@ -1,0 +1,32 @@
+{{ $title := .Info.Title }}
+import React from 'react';
+import type { ProColumns } from '@ant-design/pro-table';
+import type {
+{{- range .Models }}
+{{- if and .Properties (not (hasSuffix .Name "Reply")) (not (hasSuffix .Name "Request")) (not .Enum) (ne .Name "protobufAny") (ne .Name "rpcStatus") }}
+  {{ replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }},
+{{- end }}
+{{- end }}
+} from './data';
+
+{{/*---- 遍历所有模型 ----*/}}
+{{- range .Models }}
+  {{- if and .Properties (not (hasSuffix .Name "Reply")) (not (hasSuffix .Name "Request")) (not .Enum) (ne .Name "protobufAny") (ne .Name "rpcStatus") }}
+    {{ $entity := replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }}
+    {{ $name := print $entity "Columns" }}
+const {{ $name }}: ProColumns<{{ $entity }}>[] = [
+    {{- range .Properties }}
+      {{ $goType := trimPrefix .GoType (Camelize $title) }}
+  // {{ camelize .Name }}: {{ schemaTsType $goType (Camelize $title) }};
+  {
+    title: '{{ camelize .Name }}',
+    dataIndex: '{{ camelize .Name }}',
+    search: false,
+  },
+    {{- end }}
+];
+
+export { {{ $name }} };
+  {{- end }}
+{{- end }}
+{{/*---- 遍历所有模型 ----*/}}

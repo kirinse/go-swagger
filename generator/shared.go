@@ -271,41 +271,6 @@ func MarkdownSectionOpts(gen *GenOpts, output string) {
 	}
 }
 
-// AntdOpts for rendering a spec as markdown
-func AntdOpts() *LanguageOpts {
-	opts := &LanguageOpts{}
-	opts.Init()
-	return opts
-}
-
-// AntdSectionOpts for a given opts and output file.
-func AntdSectionOpts(gen *GenOpts, output string) {
-	gen.Sections.Models = nil
-	gen.Sections.OperationGroups = nil
-	gen.Sections.Operations = nil
-	gen.LanguageOpts = AntdOpts()
-	gen.Sections.Application = []TemplateOpts{
-		{
-			Name:     "antdData",
-			Source:   "asset:antdData",
-			Target:   filepath.Dir(output),
-			FileName: "data.ts",
-		},
-		{
-			Name:     "markdowndocs",
-			Source:   "asset:markdownDocs",
-			Target:   filepath.Dir(output),
-			FileName: "markdown.md",
-		},
-		{
-			Name:     "antdService",
-			Source:   "asset:antdService",
-			Target:   filepath.Dir(output),
-			FileName: "service.ts",
-		},
-	}
-}
-
 // TemplateOpts allows for codegen customization
 type TemplateOpts struct {
 	Name       string `mapstructure:"name"`
