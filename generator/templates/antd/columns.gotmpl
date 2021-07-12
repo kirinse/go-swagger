@@ -1,23 +1,18 @@
-{{ $title := .Info.Title }}
+{{ $title := .CustomTag }}
+{{ $package := .Package }}
 import React from 'react';
 import type { ProColumns } from '@ant-design/pro-table';
-import type {
-{{- range .Models }}
-{{- if and .Properties (not (hasSuffix .Name "Reply")) (not (hasSuffix .Name "Request")) (not .Enum) (ne .Name "protobufAny") (ne .Name "rpcStatus") }}
-  {{ replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }},
-{{- end }}
-{{- end }}
-} from './data';
+import type { {{ .Package }} } from './data';
 
 {{/*---- 遍历所有模型 ----*/}}
-{{- range .Models }}
-  {{- if and .Properties (not (hasSuffix .Name "Reply")) (not (hasSuffix .Name "Request")) (not .Enum) (ne .Name "protobufAny") (ne .Name "rpcStatus") }}
-    {{ $entity := replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }}
-    {{ $name := print $entity "Columns" }}
-const {{ $name }}: ProColumns<{{ $entity }}>[] = [
+{{ range .ExtraSchemas }}
+  {{ $model := trimPrefix .Name (lower $title) }}
+  {{- if and .Properties (eq $package $model) -}}
+    {{ $name := print $model "Columns" }}
+const {{ $name }}: ProColumns<{{ $model }}>[] = [
     {{- range .Properties }}
-      {{ $goType := trimPrefix .GoType (Camelize $title) }}
-  // {{ camelize .Name }}: {{ schemaTsType $goType (Camelize $title) }};
+{{ $goType := trimPrefix .GoType $title }}
+  // {{ camelize .Name }}: {{ schemaTsType $goType $title }} (swaggerType: {{ .SwaggerType }}, swaggerFormat: {{ .SwaggerFormat }});
   {
     title: '{{ camelize .Name }}',
     dataIndex: '{{ camelize .Name }}',
@@ -25,8 +20,7 @@ const {{ $name }}: ProColumns<{{ $entity }}>[] = [
   },
     {{- end }}
 ];
-
-export { {{ $name }} };
-  {{- end }}
-{{- end }}
+export default {{ $name }};
+  {{- end -}}
+{{ end }}
 {{/*---- 遍历所有模型 ----*/}}

@@ -18,6 +18,10 @@ func (m Antd) apply(opts *generator.GenOpts) {
 	m.Shared.apply(opts)
 	m.Models.apply(opts)
 	m.Operations.apply(opts)
+
+	opts.IncludeModel = true
+	opts.IncludeHandler = true
+
 }
 
 func (m *Antd) generate(opts *generator.GenOpts) error {

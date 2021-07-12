@@ -2,8 +2,9 @@ package generator
 
 import (
 	"errors"
+	"github.com/go-openapi/inflect"
 	"github.com/go-openapi/swag"
-	"path/filepath"
+	"strings"
 )
 
 // GenerateAntd documentation for a swagger specification
@@ -52,7 +53,6 @@ func GenerateAntd(output string, modelNames, operationIDs []string, opts *GenOpt
 		GenOpts:           opts,
 	}
 	return (&antdGenerator{generator}).Generate()
-
 
 	//output = filepath.Join(opts.Target, output)
 	//if err := opts.EnsureDefaults(); err != nil {
@@ -134,48 +134,120 @@ func (c *antdGenerator) Generate() error {
 	//	return err
 	//}
 
+	// data.ts
+	//  Target:   "{{ joinFilePath .Target (trimPrefix .Name "antd_model:") }}",
+	//	FileName: "data.ts",
+	opgImports := make(map[string]map[string]string)
+	modelMap := make(map[string]*GenDefinition)
+	for _, m := range app.Models {
+		if m.IsStream {
+			continue
+		}
+		mod := m
+		modelName := strings.TrimPrefix(mod.Description, "antd_model:")
+		if _, ok := opgImports[modelName]; !ok {
+			opgImports[modelName] = make(map[string]string)
+		}
+		opgImports[modelName][strings.Replace(mod.Name, strings.ToLower(app.Name), "", 1)] = ""
+		// .CustomTag 用于替换前缀
+		mod.GenSchema.CustomTag = app.Name
+		// .Package 用于确定目录
+		mod.Package = modelName
+		mod.Suffix = modelName
+		if _, ok := modelMap[modelName]; !ok {
+			modelMap[modelName] = &mod
+		}
 
-	return c.GenOpts.renderApplication(&app)
+		modelMap[modelName].ExtraSchemas = append(modelMap[modelName].ExtraSchemas, mod.GenSchema)
+	}
+	for _, mod := range modelMap {
+		if err := c.GenOpts.renderDefinition(mod); err != nil {
+			return err
+		}
+	}
+
+	// _list.tsx
+	//  Target:   "{{ joinFilePath .Target (pascalize .Name) }}",
+	//	FileName: "_list.tsx",
+	// service.ts
+	//  Target:   "{{ joinFilePath .Target (pascalize .Name) }}",
+	//	FileName: "service.ts",
+	debugLog("---- app.Name: %s\n", app.Name)
+	debugLog("---- total app.OperationGroups: %d\n", len(app.OperationGroups))
+	for _, opg := range app.OperationGroups {
+		opg.RootPackage = app.Name
+		pascalizedName := pascalize(opg.Name)
+		debugLog("---- app.OperationGroup.Name: %s -> %+v\n", opg.Name, pascalizedName)
+		debugLog("---- OperationGroup.RootPackage: %s -> %+v\n", opg.RootPackage, pascalize(opg.RootPackage))
+		if imports, ok := opgImports[pascalizedName]; ok {
+			opg.Imports = imports
+		}
+		for _, op := range opg.Operations {
+			op.Package = pascalize(opg.Name)
+			op.RootPackage = app.Name
+			expectedMethod := "List"+inflect.Pluralize(op.Package)
+			debugLog(
+				"---- operation Name: %s, Package: %s, RootPackage: %s, want: %s\n",
+				op.Name,
+				op.Package,
+				op.RootPackage,
+				expectedMethod,
+			)
+			if op.Name == expectedMethod {
+				if err := c.GenOpts.renderOperation(&op); err != nil {
+					return err
+				}
+			}
+		}
+		if err := c.GenOpts.renderOperationGroup(&opg); err != nil {
+			return err
+		}
+	}
+	return nil
 }
-
 
 // AntdOpts for rendering a spec as markdown
 func AntdOpts() *LanguageOpts {
-	opts := &LanguageOpts{}
+	opts := &LanguageOpts{
+		fileNameFunc: nil, // func(string) string // language specific source file naming rules
+		dirNameFunc:  nil, // func(string) string // language specific directory naming rules
+	}
 	opts.Init()
 	return opts
 }
 
 // AntdSectionOpts for a given opts and output file.
 func AntdSectionOpts(gen *GenOpts, output string) {
-	gen.Sections.Models = nil
-	gen.Sections.OperationGroups = nil
-	gen.Sections.Operations = nil
-	gen.LanguageOpts = AntdOpts()
-	gen.Sections.Application = []TemplateOpts{
+	gen.Sections.Models = []TemplateOpts{
 		{
-			Name:     "antdData",
-			Source:   "asset:antdData",
-			Target:   filepath.Dir(output),
+			Name:     "antd data",
+			Source:   "asset:antdDatag",
+			Target:   "{{ joinFilePath .Target .Package }}",
 			FileName: "data.ts",
 		},
 		{
-			Name:     "antdColumns",
+			Name:     "antd columns",
 			Source:   "asset:antdColumns",
-			Target:   filepath.Dir(output),
+			Target:   "{{ joinFilePath .Target .Package }}",
 			FileName: "columns.tsx",
 		},
+	}
+	gen.Sections.OperationGroups = []TemplateOpts{
 		{
-			Name:     "antdList",
-			Source:   "asset:antdList",
-			Target:   filepath.Dir(output),
-			FileName: "_list.tsx",
-		},
-		{
-			Name:     "antdService",
-			Source:   "asset:antdService",
-			Target:   filepath.Dir(output),
+			Name:     "antd service",
+			Source:   "asset:antdOpg",
+			Target:   "{{ joinFilePath .Target (pascalize .Name) }}",
 			FileName: "service.ts",
 		},
 	}
+	gen.Sections.Operations = []TemplateOpts{
+		{
+			Name:     "antd list",
+			Source:   "asset:antdList",
+			Target:   "{{ joinFilePath .Target .Package }}",
+			FileName: "list.tsx",
+		},
+	}
+	gen.LanguageOpts = AntdOpts()
+	gen.Sections.Application = []TemplateOpts{}
 }

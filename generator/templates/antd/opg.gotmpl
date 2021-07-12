@@ -1,0 +1,59 @@
+{{ $title := .RootPackage }}import request from '@/utils/request';
+import { {{- range $import, $_ := .Imports }}{{ $import }},{{- end}} } from './data';
+{{- range .Operations }}
+  {{- if ne .Path "" }}
+    {{ $path := .Path }}
+    {{ $pathParam := false }}
+    {{ $queryParam := false }}
+    {{ $data := false }}
+    {{ $params := "" }}
+    {{- if .PathParams }}
+      {{ $pathParam = true }}
+      {{ $params = tsParam .PathParams $title }}
+      {{- range .PathParams }}
+        {{/* 替换 url */}}
+        {{ $goType := trimPrefix .GoType (Camelize $title) }}
+        {{ $path = replaceAll $path (print "{" .Name "}") (print "$" "{" (camelize .Name) "}") }}
+      {{- end }}
+    {{- end }}
+
+    {{- if .QueryParams }}
+      {{ $queryParam = true }}
+      {{ $params = print "params: {\n" (tsParam .QueryParams $title) "}" }}
+    {{- end }}
+
+    {{- if .FormParams}}
+      {{ $data = true }}
+    {{- end }}
+
+    {{/* BodyParam */}}
+    {{- range .Params }}
+      {{- if .IsBodyParam }}
+        {{ $data = true }}
+        {{- if $data }}
+          {{- if ne $params "" }}
+            {{- $params = print $params ", "}}
+          {{- end }}
+          {{- $params = print $params "data: " (trimPrefix (dropPackage .GoType) (Camelize $title)) }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{/* BodyParam */}}
+
+export async function {{ camelize (trimPrefix (humanize .Name) .PackageAlias) }}({{- if $params }}{{ $params }}{{- end }}) {
+  return request.{{ lower .Method }}(`{{ $path }}`{{- if or $queryParam $data }}, {
+  {{- if $queryParam }}params: params,{{- end }}{{- if $data }}data: data{{- end }}{{ print "}"}}{{- end }});
+}
+  {{- end }}
+  {{- if .ExtraSchemas }}
+    {{- range .ExtraSchemas }}
+      {{- if and (ne .Name "") .Properties }}
+        export interface {{ replaceAll (humanizeTitle (trimPrefix .Name $title)) " " "" }} {
+        {{- range .Properties }}{{ $goType := trimPrefix .GoType (Camelize $title) }}
+        {{ camelize .Name }}{{ if not .Required }}?{{ end }}: {{ schemaTsType $goType (Camelize $title) }};
+        {{- end }}
+        }
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}

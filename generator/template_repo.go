@@ -156,9 +156,9 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 				if param.Required {
 					requiredMark = ""
 				}
-				types = append(types, "  " + swag.ToJSONName(param.Name)+requiredMark+": "+schemaTsType(param.GoType, title))
+				types = append(types, "  "+swag.ToJSONName(param.Name)+requiredMark+": "+schemaTsType(param.GoType, title))
 			}
-			return strings.Join(types, ", \n")
+			return strings.TrimSpace(strings.Join(types, ", \n"))
 		},
 	})
 }
@@ -260,10 +260,12 @@ func defaultAssets() map[string][]byte {
 		"cli/completion.gotmpl":   MustAsset("templates/cli/completion.gotmpl"),
 
 		// antd templates
-		"antd/data.gotmpl":          MustAsset("templates/antd/data.gotmpl"),
-		"antd/columns.gotmpl":          MustAsset("templates/antd/columns.gotmpl"),
-		"antd/list.gotmpl": MustAsset("templates/antd/list.gotmpl"),
-		"antd/service.gotmpl":       MustAsset("templates/antd/service.gotmpl"),
+		"antd/data.gotmpl":    MustAsset("templates/antd/data.gotmpl"),
+		"antd/columns.gotmpl": MustAsset("templates/antd/columns.gotmpl"),
+		"antd/list.gotmpl":    MustAsset("templates/antd/list.gotmpl"),
+		"antd/service.gotmpl": MustAsset("templates/antd/service.gotmpl"),
+		"antd/opg.gotmpl":     MustAsset("templates/antd/opg.gotmpl"),
+		"antd/datag.gotmpl":   MustAsset("templates/antd/datag.gotmpl"),
 	}
 }
 
