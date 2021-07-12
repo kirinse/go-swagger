@@ -64,3 +64,6 @@ coverage.txt
 
 hack/deploy.env
 /antd/markdown.md
+/antd/
+/swagger.json
+/swagger
